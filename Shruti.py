@@ -3,7 +3,18 @@ from time import time,sleep
 import subprocess
 import winsound
 from math import floor
+import wave
 accompaniment=0
+
+def shrutiname(n):
+        octave,just= (int(floor(n/22)),[(1,1),(256,243),(16,15),(10,9),(9,8),(32,27),(6,5),(5,4),(81,64),(4,3),(27,20),(45,32),(729,512),(3,2),(128,81),(8,5),(5,3),(27,16),(16,9),(9,5),(15,8),(243,128)][wrap(n,22)])
+        if octave<0:
+                just=just[0],just[1]*2**abs(octave)
+        if octave>0:
+                just=just[0]*2**abs(octave),just[1]
+    
+        return "%s_%s.wav"%(just[0],just[1])
+
 def wrap(a,b):
         if a<0:
                 return wrap(a+b,b)
@@ -16,6 +27,7 @@ def inimixer():
 channels=[0,0,0,0,0,0,0,0]
 mixer=inimixer()
 pygame.init()
+Pluck_Sounds=[pygame.mixer.Sound(shrutiname(i) )for i in range(-22,23)]
  
 def shruti(n):
 	return 261.6256*2**(int(floor(n/22)))*[1,256/243,16/15,10/9,9/8,32/27,6/5,5/4,81/64,4/3,27/20,45/32,729/512,3/2,128/81,8/5,5/3,27/16,16/9,9/5,15/8,243/128][wrap(n,22)]
@@ -38,26 +50,18 @@ def bpmadjust(keys):
         secondsperbeat=60.0/bpm
         print ("set bpm: %s"%bpm)
 
-def shrutiname(n):
-	return (int(floor(n/22)),[(1,1),(256,243),(16,15),(10,9),(9,8),(32,27),(6,5),(5,4),(81,64),(4,3),(27,20),(45,32),(729,512),(3,2),(128,81),(8,5),(5,3),(27,16),(16,9),(9,5),(15,8),(243,128)][wrap(n,22)])
 
 def playnote(n):
-    octave,just=shrutiname(n)
-    if octave<0:
-        just=just[0],just[1]*2**abs(octave)
-    if octave>0:
-        just=just[0]*2**abs(octave),just[1]
-
-        
-    name="%s_%s.wav"%(just[0],just[1])
-    print(n)
-    print(name)
-    winsound.PlaySound(name,winsound.SND_ASYNC)
+    name=shrutiname(n)
+    channel=firstfreechannel()
+    playsoundbuff(Pluck_Sounds[n+21],channel)
+    #winsound.PlaySound(name,winsound.SND_ASYNC)
 
  
-def playsoundbuff(rawdata=kick):
+def playsoundbuff(rawdata,channel):
         beep = pygame.mixer.Sound(buffer=rawdata)
-        pygame.mixer.Channel(0).play(beep)
+        channels[channel]=time()+1
+        pygame.mixer.Channel(channel).play(beep)
  
 def playbeatsound():
         if accompaniment==2:
@@ -86,7 +90,7 @@ def drawbeats(screen):
 
 
 size = width, height = 320, 240
-bpm=80
+bpm=65
 secondsperbeat=60/bpm
 black = 0, 0, 0
 cl=pygame.time.Clock()
@@ -102,14 +106,14 @@ while 1:
     if t>nextbeat:
         lastbeat=nextbeat
         nextbeat=lastbeat+secondsperbeat
-        #playbeatsound()
-    keys=pygame.key.get_pressed()
-    bpmadjust(keys)
-    playsounds(keys)
+    events=pygame.event.get()
+    for event in events:
+            if event.type == pygame.KEYDOWN:
+                    if event.key in keylookup:
+                            playnote(keylookup[event.key])
     if lastrefresh+1/30<t:
         screen.fill(black)
         drawbeats(screen)
         pygame.display.flip()
     pygame.event.pump()
-    sleep(.1)
 #playnote(440,0)
